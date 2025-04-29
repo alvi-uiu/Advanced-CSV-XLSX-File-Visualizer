@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced CSV/XLSX File Visualizer</title>
+    <style>
+        :root {
+            --background-color: #121212;
+            --text-color: #e0e0e0;
+            --accent-color: #bb86fc;
+            --secondary-background: #1e1e1e;
+            --border-color: #333333;
+            --button-background: #6200ee;
+            --button-hover: #3700b3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--text-color);
+        }
+
+        .file-input-area {
+            margin: 20px 0;
+        }
+
+        #file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-left: 4px solid var(--accent-color);
+            background: var(--secondary-background);
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: var(--text-color);
+        }
+
+        .file-info {
+            margin-bottom: 15px;
+            color: #cccccc;
+            font-size: 0.9em;
+        }
+
+        .file-info span {
+            font-weight: bold;
+            color: var(--text-color);
+            margin-right: 15px;
+        }
+
+        .table-container {
+            max-height: 450px;
+            overflow: auto;
+            border: 1px solid var(--border-color);
+            margin-top: 10px;
+            position: relative;
+            background-color: var(--secondary-background);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: auto;
+            background-color: var(--secondary-background);
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+            white-space: nowrap;
+            min-width: 40px;
+            color: var(--text-color);
+        }
+
+        th {
+            background-color: var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-clip: padding-box;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #242424;
+        }
+
+        .controls {
+            margin: 15px 0;
+        }
+
+        .slider-container {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+            color: var(--text-color);
+        }
+
+        .slider-container label {
+            margin-right: 10px;
+            min-width: 80px;
+        }
+
+        .slider-container input[type=range] {
+            flex-grow: 1;
+            margin-right: 10px;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border-color);
+            height: 5px;
+            border-radius: 5px;
+        }
+
+        .slider-container input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider-container input[type=range]::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider-container span {
+            min-width: 150px;
+            font-style: italic;
+            color: var(--text-color);
+        }
+
+        button {
+            padding: 8px 16px;
+            background: var(--button-background);
+            color: var(--text-color);
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: var(--button-hover);
+        }
+
+        .no-data {
+            color: #bbbbbb;
+            font-style: italic;
+        }
+
+        .drop-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background-color: var(--secondary-background);
+            transition: background-color 0.3s;
+            color: var(--text-color);
+        }
+
+        .drop-area.highlight {
+            background-color: #2a2a2a;
+            border-color: var(--accent-color);
+        }
+
+        .drop-text {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .accepted-formats {
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 10px;
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: var(--border-color);
+            margin: 10px 0;
+            display: none;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: var(--accent-color);
+            width: 0%;
+            text-align: center;
+            line-height: 20px;
+            color: var(--text-color);
+            transition: width 0.3s ease;
+        }
+
+        .loading {
+            color: var(--accent-color);
+            font-style: italic;
+        }
+
+        .error-message {
+            color: #ff5252;
+            font-weight: bold;
+            padding: 10px;
+            background-color: #330000;
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: var(--secondary-background);
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 6px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #555555;
+        }
+
+        .stats-container, .charts-container {
+            margin-top: 20px;
+        }
+
+        .stats-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .stats-table th, .stats-table td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+            color: var(--text-color);
+        }
+
+        .stats-table th {
+            background-color: var(--border-color);
+        }
+
+        .stats-table tbody tr:nth-child(even) {
+            background-color: #242424;
+        }
+
+        canvas {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Advanced CSV/XLSX File Visualizer</h1>
+
+    <div id="drop-area" class="drop-area">
+        <div class="drop-text">Drag & drop CSV or Excel files here</div>
+        <div>or</div>
+        <div class="file-input-area">
+            <input type="file" id="file-input" accept=".csv,.xlsx,.xls" multiple style="display: none;" />
+            <button onclick="document.getElementById('file-input').click()">Choose Files</button>
+        </div>
+        <div class="accepted-formats">Accepted formats: .csv, .xlsx, .xls</div>
+    </div>
+
+    <div class="progress-container" id="progress-container">
+        <div class="progress-bar" id="progress-bar">0%</div>
+    </div>
+
+    <div id="file-list">
+        <p class="no-data">No files selected yet.</p>
+    </div>
+
+    <footer style="text-align: center; margin-top: 20px; color: var(--text-color);">
+        © Riasad Alvi
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const MAX_ROWS_TO_DISPLAY = 50;
+        const MAX_COLS_TO_DISPLAY = 20;
+        const UNIQUE_THRESHOLD = 0.1;
+
+        function parseCSV(text) {
+            const rows = text.split(/\r?\n/).filter(line => line.trim());
+            const data = rows.map(row => {
+                const result = [];
+                let current = '';
+                let inQuote = false;
+                for (let i = 0; i < row.length; i++) {
+                    const char = row[i];
+                    if (char === '"' && (i === 0 || row[i-1] !== '\\')) {
+                        inQuote = !inQuote;
+                    } else if (char === ',' && !inQuote) {
+                        result.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                result.push(current.trim());
+                return result;
+            });
+            if (data.length > 0) {
+                const headerLength = data[0].length;
+                for (let i = 1; i < data.length; i++) {
+                    while (data[i].length < headerLength) data[i].push('');
+                    if (data[i].length > headerLength) data[i] = data[i].slice(0, headerLength);
+                }
+            }
+            return data;
+        }
+
+        async function parseExcel(arrayBuffer) {
+            if (typeof XLSX === 'undefined') {
+                alert("Error: SheetJS library not loaded.");
+                return null;
+            }
+            try {
+                const workbook = XLSX.read(arrayBuffer, {type: 'array'});
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const data = XLSX.utils.sheet_to_json(worksheet, {header: 1, raw: false, defval: ''});
+                if (data.length > 0) {
+                    const headerLength = data[0].length;
+                    for (let i = 1; i < data.length; i++) {
+                        if (!data[i]) data[i] = Array(headerLength).fill('');
+                        while (data[i].length < headerLength) data[i].push('');
+                        if (data[i].length > headerLength) data[i] = data[i].slice(0, headerLength);
+                    }
+                }
+                return data;
+            } catch (error) {
+                throw new Error("Could not parse Excel file: " + error.message);
+            }
+        }
+
+        function analyzeData(data) {
+            if (!data || data.length === 0) return [];
+            const header = data[0];
+            const totalRows = data.length - 1;
+            const columnStats = header.map(name => ({
+                name,
+                type: null,
+                missing: 0,
+                min: null,
+                max: null,
+                mean: null,
+                std: null,
+                uniqueSet: new Set(),
+                isNumeric: true
+            }));
+
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                for (let j = 0; j < header.length; j++) {
+                    const cell = row[j];
+                    const stat = columnStats[j];
+                    if (cell === '' || cell === null || cell === undefined) {
+                        stat.missing++;
+                        continue;
+                    }
+                    const num = Number(cell);
+                    if (!isNaN(num)) {
+                        if (stat.min === null || num < stat.min) stat.min = num;
+                        if (stat.max === null || num > stat.max) stat.max = num;
+                        stat.mean = (stat.mean || 0) + num;
+                        stat.std = (stat.std || 0) + num * num;
+                    } else {
+                        stat.isNumeric = false;
+                    }
+                    stat.uniqueSet.add(String(cell));
+                }
+            }
+
+            columnStats.forEach(stat => {
+                const validCount = totalRows - stat.missing;
+                if (stat.isNumeric && validCount > 0) {
+                    stat.type = 'numeric';
+                    stat.mean /= validCount;
+                    stat.std = Math.sqrt(stat.std / validCount - stat.mean * stat.mean);
+                } else if (!stat.isNumeric) {
+                    stat.type = stat.uniqueSet.size / totalRows < UNIQUE_THRESHOLD ? 'categorical' : 'text';
+                    stat.min = stat.max = stat.mean = stat.std = null;
+                }
+                stat.unique = stat.uniqueSet.size;
+                delete stat.uniqueSet;
+                delete stat.isNumeric;
+            });
+            return columnStats;
+        }
+
+        function renderTableSubset(containerId, data, startRow, numRows, startCol, numCols) {
+            const container = document.querySelector(`#${containerId} .table-container`);
+            if (!container || !data || data.length === 0) {
+                container.innerHTML = '<p class="no-data">No data to display.</p>';
+                return;
+            }
+
+            const header = data[0];
+            const rows = data.slice(1);
+            const totalRows = rows.length;
+            const totalCols = header.length;
+
+            startRow = Math.max(0, Math.min(startRow, totalRows - 1));
+            startCol = Math.max(0, Math.min(startCol, totalCols - 1));
+            const endRow = Math.min(startRow + numRows, totalRows);
+            const endCol = Math.min(startCol + numCols, totalCols);
+
+            let html = '<table><thead><tr>';
+            for (let j = startCol; j < endCol; j++) {
+                html += `<th>${escapeHtml(header[j])}</th>`;
+            }
+            html += '</tr></thead><tbody>';
+            for (let i = startRow; i < endRow; i++) {
+                html += '<tr>';
+                for (let j = startCol; j < endCol; j++) {
+                    html += `<td>${escapeHtml(rows[i][j])}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            updateSliderInfo(containerId, startRow, endRow, totalRows, startCol, endCol, totalCols);
+        }
+
+        function escapeHtml(text) {
+            return (text + '').replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
+        }
+
+        function updateSliderInfo(containerId, startRow, endRow, totalRows, startCol, endCol, totalCols) {
+            const rowInfo = document.querySelector(`#${containerId} .row-slider-info`);
+            const colInfo = document.querySelector(`#${containerId} .col-slider-info`);
+            if (rowInfo) rowInfo.textContent = totalRows > 0 ? `Showing rows ${startRow + 1}-${endRow} of ${totalRows}` : 'No rows';
+            if (colInfo) colInfo.textContent = totalCols > 0 ? `Showing columns ${startCol + 1}-${endCol} of ${totalCols}` : 'No columns';
+        }
+
+        function generateColumnStatsTable(columnStats, totalRows) {
+            let html = '<table><thead><tr><th>Column</th><th>Type</th><th>Missing %</th><th>Info</th></tr></thead><tbody>';
+            columnStats.forEach(stat => {
+                const missingPct = totalRows > 0 ? (stat.missing / totalRows * 100).toFixed(2) + '%' : 'N/A';
+                let info = '';
+                if (stat.type === 'numeric' && stat.min !== null) {
+                    info = `Min: ${stat.min.toFixed(2)}, Max: ${stat.max.toFixed(2)}, Mean: ${stat.mean.toFixed(2)}, Std: ${stat.std.toFixed(2)}`;
+                } else if (stat.type === 'categorical') {
+                    info = `Unique: ${stat.unique}`;
+                } else {
+                    info = 'Text';
+                }
+                html += `<tr><td>${stat.name}</td><td>${stat.type || 'N/A'}</td><td>${missingPct}</td><td>${info}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function generateCharts(containerId, data, columnStats) {
+            const container = document.querySelector(`#${containerId} .charts-container`);
+            container.innerHTML = '';
+
+            const numericCols = columnStats.filter(stat => stat.type === 'numeric').slice(0, 5);
+            const categoricalCols = columnStats.filter(stat => stat.type === 'categorical').slice(0, 5);
+
+            numericCols.forEach(stat => {
+                const colIdx = data[0].indexOf(stat.name);
+                const values = data.slice(1).map(row => Number(row[colIdx])).filter(v => !isNaN(v));
+                if (values.length === 0) return;
+
+                const canvas = document.createElement('canvas');
+                container.appendChild(canvas);
+                new Chart(canvas, {
+                    type: 'bar', // Using bar as histogram for simplicity
+                    data: {
+                        labels: Array.from({length: Math.min(values.length, 50)}, (_, i) => i),
+                        datasets: [{
+                            label: `${stat.name} Histogram`,
+                            data: values.slice(0, 50),
+                            backgroundColor: 'rgba(187, 134, 252, 0.5)',
+                            borderColor: 'rgba(187, 134, 252, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: { scales: { y: { beginAtZero: true } } }
+                });
+            });
+
+            categoricalCols.forEach(stat => {
+                const colIdx = data[0].indexOf(stat.name);
+                const counts = {};
+                data.slice(1).forEach(row => {
+                    const val = row[colIdx] || 'N/A';
+                    counts[val] = (counts[val] || 0) + 1;
+                });
+                const labels = Object.keys(counts);
+                const values = Object.values(counts);
+
+                const canvas = document.createElement('canvas');
+                container.appendChild(canvas);
+                new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: `${stat.name} Distribution`,
+                            data: values,
+                            backgroundColor: 'rgba(187, 134, 252, 0.5)',
+                            borderColor: 'rgba(187, 134, 252, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: { scales: { y: { beginAtZero: true } } }
+                });
+            });
+        }
+
+        async function processFiles(files) {
+            const fileList = document.getElementById('file-list');
+            const progress = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            progress.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+
+            const validFiles = Array.from(files).filter(f => 
+                f.name.toLowerCase().endsWith('.csv') || 
+                f.name.toLowerCase().endsWith('.xlsx') || 
+                f.name.toLowerCase().endsWith('.xls')
+            );
+
+            if (validFiles.length === 0) {
+                fileList.innerHTML = '<p class="no-data">No valid files selected.</p>';
+                progress.style.display = 'none';
+                return;
+            }
+
+            if (fileList.querySelector('.no-data')) {
+                fileList.innerHTML = '<h2>File Previews</h2>';
+            }
+
+            window.fileDataStore = window.fileDataStore || {};
+
+            for (let i = 0; i < validFiles.length; i++) {
+                const file = validFiles[i];
+                const fileId = `file-${Date.now()}-${i}`;
+                const progressVal = ((i + 1) / validFiles.length * 100).toFixed(0);
+                progressBar.style.width = `${progressVal}%`;
+                progressBar.textContent = `${progressVal}%`;
+
+                const fileElement = document.createElement('div');
+                fileElement.id = fileId;
+                fileElement.className = 'file-item';
+                fileElement.innerHTML = `
+                    <div class="file-name">📄 ${file.name}</div>
+                    <div class="file-info" id="${fileId}-info">Loading...</div>
+                    <div class="controls">
+                        <div class="slider-container">
+                            <label>Rows:</label>
+                            <input type="range" id="${fileId}-row-slider" min="0" max="0" value="0" disabled>
+                            <span class="row-slider-info"></span>
+                        </div>
+                        <div class="slider-container">
+                            <label>Cols:</label>
+                            <input type="range" id="${fileId}-col-slider" min="0" max="0" value="0" disabled>
+                            <span class="col-slider-info"></span>
+                        </div>
+                        <button class="stats-btn" data-id="${fileId}">Show Stats</button>
+                        <button class="charts-btn" data-id="${fileId}">Show Charts</button>
+                    </div>
+                    <div class="table-container"><div class="loading">Parsing...</div></div>
+                    <div class="stats-container" style="display: none;"></div>
+                    <div class="charts-container" style="display: none;"></div>
+                `;
+                fileList.appendChild(fileElement);
+
+                const toggleSection = (btnClass, sectionClass, textShow, textHide) => {
+                    const btn = fileElement.querySelector(`.${btnClass}`);
+                    btn.addEventListener('click', () => {
+                        const section = fileElement.querySelector(`.${sectionClass}`);
+                        const isHidden = section.style.display === 'none';
+                        section.style.display = isHidden ? 'block' : 'none';
+                        btn.textContent = isHidden ? textHide : textShow;
+                        if (isHidden && sectionClass === 'charts-container') {
+                            generateCharts(fileId, window.fileDataStore[fileId].data, window.fileDataStore[fileId].columnStats);
+                        }
+                    });
+                };
+
+                toggleSection('stats-btn', 'stats-container', 'Show Stats', 'Hide Stats');
+                toggleSection('charts-btn', 'charts-container', 'Show Charts', 'Hide Charts');
+
+                try {
+                    const start = performance.now();
+                    const data = file.name.toLowerCase().endsWith('.csv') 
+                        ? parseCSV(await file.text()) 
+                        : await parseExcel(await file.arrayBuffer());
+                    const duration = ((performance.now() - start) / 1000).toFixed(2);
+
+                    if (!data) throw new Error("Parsing failed.");
+
+                    const columnStats = analyzeData(data);
+                    window.fileDataStore[fileId] = { data, columnStats };
+
+                    const totalRows = data.length - 1;
+                    const totalCols = data[0]?.length || 0;
+                    document.getElementById(`${fileId}-info`).innerHTML = `
+                        <span>Rows: ${totalRows}</span>
+                        <span>Columns: ${totalCols}</span>
+                        <span>Parsed in: ${duration}s</span>
+                    `;
+
+                    const rowSlider = document.getElementById(`${fileId}-row-slider`);
+                    const colSlider = document.getElementById(`${fileId}-col-slider`);
+                    if (totalRows > MAX_ROWS_TO_DISPLAY) {
+                        rowSlider.max = totalRows - MAX_ROWS_TO_DISPLAY;
+                        rowSlider.disabled = false;
+                    }
+                    if (totalCols > MAX_COLS_TO_DISPLAY) {
+                        colSlider.max = totalCols - MAX_COLS_TO_DISPLAY;
+                        colSlider.disabled = false;
+                    }
+
+                    rowSlider.addEventListener('input', () => renderTableSubset(fileId, data, +rowSlider.value, MAX_ROWS_TO_DISPLAY, +colSlider.value, MAX_COLS_TO_DISPLAY));
+                    colSlider.addEventListener('input', () => renderTableSubset(fileId, data, +rowSlider.value, MAX_ROWS_TO_DISPLAY, +colSlider.value, MAX_COLS_TO_DISPLAY));
+
+                    renderTableSubset(fileId, data, 0, MAX_ROWS_TO_DISPLAY, 0, MAX_COLS_TO_DISPLAY);
+                    document.querySelector(`#${fileId} .stats-container`).innerHTML = generateColumnStatsTable(columnStats, totalRows);
+                } catch (error) {
+                    document.querySelector(`#${fileId} .table-container`).innerHTML = `<p class="error-message">${error.message}</p>`;
+                    document.getElementById(`${fileId}-info`).textContent = 'Error processing file.';
+                }
+            }
+
+            setTimeout(() => progress.style.display = 'none', 500);
+        }
+
+        const fileInput = document.getElementById('file-input');
+        const dropArea = document.getElementById('drop-area');
+
+        fileInput.addEventListener('change', e => processFiles(e.target.files));
+        dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('highlight'); });
+        dropArea.addEventListener('dragleave', () => dropArea.classList.remove('highlight'));
+        dropArea.addEventListener('drop', e => {
+            e.preventDefault();
+            dropArea.classList.remove('highlight');
+            processFiles(e.dataTransfer.files);
+        });
+    </script>
+</body>
+</html>
